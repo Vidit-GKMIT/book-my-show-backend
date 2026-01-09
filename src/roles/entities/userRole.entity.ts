@@ -1,9 +1,10 @@
 import { User } from 'src/users/entities/user.entity';
 import {
+  Column,
   Entity,
   JoinColumn,
   ManyToOne,
-  OneToOne,
+  // OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Role } from './role.entity';
@@ -13,15 +14,11 @@ export class UserRole {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @OneToOne(() => User, (user) => user.userRole)
-  @JoinColumn({
-    name: 'user_id',
-  })
-  userId: User;
+  @ManyToOne(() => User, (user) => user.userRoles)
+  @JoinColumn({ name: 'user_id' })
+  user: User;
 
-  @ManyToOne(() => Role, (role) => role.roles)
-  @JoinColumn({
-    name: 'role_id',
-  })
-  roleId: Role;
+  @ManyToOne(() => Role, (role) => role.userRoles)
+  @JoinColumn({ name: 'role_id' })
+  role: Role;
 }
