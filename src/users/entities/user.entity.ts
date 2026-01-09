@@ -1,6 +1,7 @@
 // import { UserRole } from 'src/roles/entities/role.entity';
 import { Booking } from 'src/bookings/entities/booking.entity';
-import { UserRole } from 'src/roles/entities/user_role.entity';
+// import { Role } from 'src/roles/entities/role.entity';
+import { UserRole } from 'src/roles/entities/userRole.entity';
 import { Theatre } from 'src/theatres/entities/theatre.entity';
 import {
   Column,
@@ -8,7 +9,7 @@ import {
   DeleteDateColumn,
   Entity,
   OneToMany,
-  OneToOne,
+  // OneToOne,
   PrimaryGeneratedColumn,
   Timestamp,
   UpdateDateColumn,
@@ -41,8 +42,11 @@ export class User {
   })
   phoneNo: string;
 
-  @OneToOne(() => UserRole, (userRole) => userRole.userId)
-  userRole: UserRole;
+  // @OneToOne(() => UserRole, (userRole) => userRole.userId)
+  // userRole: UserRole;
+
+  @OneToMany(() => UserRole, (userRole) => userRole.user)
+  userRoles: UserRole[];
 
   @OneToMany(() => Theatre, (theatre) => theatre.user)
   theatres: Theatre[];
