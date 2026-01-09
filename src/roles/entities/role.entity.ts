@@ -8,7 +8,7 @@ import {
   Timestamp,
   UpdateDateColumn,
 } from 'typeorm';
-import { UserRole } from './user_role.entity';
+import { UserRole } from './userRole.entity';
 
 @Entity('roles')
 export class Role {
@@ -18,8 +18,8 @@ export class Role {
   @Column()
   name: string;
 
-  @OneToMany(() => UserRole, (user) => user.roleId)
-  roles: UserRole[];
+  @OneToMany(() => UserRole, (userRole) => userRole.role)
+  userRoles: UserRole[];
 
   @CreateDateColumn({
     type: 'timestamptz',
