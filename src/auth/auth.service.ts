@@ -61,26 +61,6 @@ export class AuthService {
     });
 
     await this.userRoleRepository.save(userRoleData);
-
-    // const accessPayload = {
-    //   id: user.id,
-    //   email: user.email,
-    //   type: 'AccessToken',
-    // };
-    // const refreshPayload = {
-    //   id: user.id,
-    //   email: user.email,
-    //   type: 'RefreshToken',
-    // };
-
-    // return {
-    // accessToken: await this.jwtService.signAsync(accessPayload, {
-    //   expiresIn: '1m',
-    // }),
-    // refreshToken: await this.jwtService.signAsync(refreshPayload, {
-    //   expiresIn: '10d',
-    // }),
-    // };
   }
 
   async login(loginDTO: loginDTO): Promise<void> {

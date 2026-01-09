@@ -33,7 +33,7 @@ dotenv.config();
       City,
       Country,
     ]),
-    JwtModule.register({ secret: process.env.JWT_SECRET, global: true }),
+    JwtModule.register({ global: true, secret: process.env.JWT_ACCESS_SECRET }),
   ],
   controllers: [AuthController],
   providers: [AuthService, Mail],
