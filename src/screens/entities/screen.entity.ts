@@ -1,3 +1,4 @@
+import { Exclude } from 'class-transformer';
 import { Show } from 'src/shows/entities/show.entity';
 import { Theatre } from 'src/theatres/entities/theatre.entity';
 import {
@@ -31,6 +32,7 @@ export class Screen {
   @OneToMany(() => Show, (show) => show.screenId)
   shows: Show[];
 
+  @Exclude()
   @CreateDateColumn({
     type: 'timestamptz',
     name: 'created_at',
@@ -38,6 +40,7 @@ export class Screen {
   })
   createdAt: Timestamp;
 
+  @Exclude()
   @UpdateDateColumn({
     type: 'timestamptz',
     name: 'updated_at',
@@ -45,6 +48,7 @@ export class Screen {
   })
   updatedAt: Timestamp;
 
+  @Exclude()
   @DeleteDateColumn({
     type: 'timestamptz',
     name: 'deleted_at',
