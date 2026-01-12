@@ -1,4 +1,5 @@
 // import { UserRole } from 'src/roles/entities/role.entity';
+import { Exclude } from 'class-transformer';
 import { Booking } from 'src/bookings/entities/booking.entity';
 // import { Role } from 'src/roles/entities/role.entity';
 import { UserRole } from 'src/roles/entities/userRole.entity';
@@ -54,6 +55,7 @@ export class User {
   @OneToMany(() => Booking, (booking) => booking.userId)
   bookings: Booking[];
 
+  @Exclude()
   @CreateDateColumn({
     type: 'timestamptz',
     name: 'created_at',
@@ -61,6 +63,7 @@ export class User {
   })
   createdAt: Timestamp;
 
+  @Exclude()
   @UpdateDateColumn({
     type: 'timestamptz',
     name: 'updated_at',
@@ -68,6 +71,7 @@ export class User {
   })
   updatedAt: Timestamp;
 
+  @Exclude()
   @DeleteDateColumn({
     type: 'timestamptz',
     name: 'deleted_at',
