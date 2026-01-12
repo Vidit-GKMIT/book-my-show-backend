@@ -7,29 +7,51 @@ import {
   Param,
   Delete,
   Query,
-  ForbiddenException,
+  // ForbiddenException,
   Req,
+  UseInterceptors,
+  // UploadedFile,
+  UploadedFiles,
+  BadRequestException,
+  ForbiddenException,
+  UseGuards,
 } from '@nestjs/common';
 import { MoviesService } from './movies.service';
 import { CreateMovieDto } from './dto/create-movie.dto';
 import { UpdateMovieDto } from './dto/update-movie.dto';
 import { PaginationDto } from 'src/common/dto/pagination-dto';
 import type { Request } from 'express';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { AuthGuard } from 'src/auth/guards/auth.guard';
+import { RolesGuard } from 'src/auth/guards/role.guard';
+import { Role, Roles } from 'src/auth/decorators/roles.decorator';
 
 @Controller('movies')
 export class MoviesController {
   constructor(private readonly moviesService: MoviesService) {}
 
+  @Roles(Role.ADMIN)
+  @UseGuards(AuthGuard, RolesGuard)
   @Post()
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'poster', maxCount: 1 },
+      { name: 'trailer', maxCount: 1 },
+    ]),
+  )
   async create(
     @Body() createMovieDto: CreateMovieDto,
     @Req() request: Request,
+    @UploadedFiles()
+    file: {
+      poster: Express.Multer.File;
+      trailer: Express.Multer.File;
+    },
   ) {
-    const role = request.headers.role as string;
-    if (role !== 'Admin') {
-      throw new ForbiddenException('Only admins can create movies');
+    if (!file.poster || !file.trailer) {
+      throw new BadRequestException('file required!');
     }
-    await this.moviesService.create(createMovieDto);
+    await this.moviesService.create(createMovieDto, file.poster, file.trailer);
     return {
       message: 'Movie created successfully',
       status: 201,

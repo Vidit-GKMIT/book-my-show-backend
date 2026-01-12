@@ -16,7 +16,9 @@ import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateBookingDto } from './dto/update-booking.dto';
 import { PaginationDto } from 'src/common/dto/pagination-dto';
 import type { Request } from 'express';
-import { AuthGuard } from 'src/auth/auth.guard';
+import { AuthGuard } from 'src/auth/guards/auth.guard';
+import { Role, Roles } from 'src/auth/decorators/roles.decorator';
+import { RolesGuard } from 'src/auth/guards/role.guard';
 
 @Controller('bookings')
 export class BookingsController {
@@ -27,17 +29,14 @@ export class BookingsController {
     return this.bookingsService.create(createBookingDto);
   }
 
-  @UseGuards(AuthGuard)
+  @Roles(Role.ADMIN)
+  @UseGuards(AuthGuard, RolesGuard)
   @Get()
   async findAll(
     @Query() paginationDto: PaginationDto,
     @Req() request: Request,
   ) {
     const id = request.headers.id as string;
-    const role = request.headers.role as string;
-    if (role === 'Theatre Owner') {
-      throw new ForbiddenException(`Only customers can see their bookings`);
-    }
     return await this.bookingsService.findAll(paginationDto, +id);
   }
 

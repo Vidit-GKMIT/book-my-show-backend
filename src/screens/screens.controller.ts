@@ -13,13 +13,15 @@ import {
 import { ScreensService } from './screens.service';
 import { CreateScreenDto } from './dto/create-screen.dto';
 import { UpdateScreenDto } from './dto/update-screen.dto';
-import { AuthGuard } from 'src/auth/auth.guard';
+import { AuthGuard } from 'src/auth/guards/auth.guard';
 import type { Request } from 'express';
+import { Role, Roles } from 'src/auth/decorators/roles.decorator';
 
 @Controller('screens')
 export class ScreensController {
   constructor(private readonly screensService: ScreensService) {}
 
+  @Roles(Role.ADMIN, Role.THEATRE_OWNER)
   @UseGuards(AuthGuard)
   @Post()
   async create(
@@ -27,11 +29,6 @@ export class ScreensController {
     @Req() request: Request,
   ) {
     const id = request.headers.id as string;
-    const role = request.headers.role as string;
-
-    if (role === 'Customer') {
-      throw new ForbiddenException(`Customers can't create screens`);
-    }
 
     await this.screensService.create(createScreenDto, +id);
     return {
