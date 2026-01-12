@@ -5,11 +5,23 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { InjectRepository } from '@nestjs/typeorm';
+import { log } from 'console';
 import { Request } from 'express';
+import { Role } from 'src/roles/entities/role.entity';
+import { UserRole } from 'src/roles/entities/userRole.entity';
+import { User } from 'src/users/entities/user.entity';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private jwtService: JwtService) {}
+  constructor(
+    private jwtService: JwtService,
+    @InjectRepository(Role)
+    private readonly roleRepository: Repository<Role>,
+    @InjectRepository(UserRole)
+    private readonly userRoleRepository: Repository<UserRole>,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
@@ -22,7 +34,21 @@ export class AuthGuard implements CanActivate {
     try {
       const payload: { id: number; email: string; type: string } =
         await this.jwtService.verifyAsync(token);
-      request['user'] = payload;
+
+      const userRole = await this.userRoleRepository.findOne({
+        where: {
+          user: { id: payload.id },
+        },
+        relations: {
+          role: true,
+        },
+      });
+
+      const roleName = userRole?.role.name;
+
+      request.headers['id'] = payload.id.toString();
+      request.headers['email'] = payload.email;
+      request.headers['role'] = roleName?.toString();
     } catch {
       throw new UnauthorizedException(`Not authorized`);
     }

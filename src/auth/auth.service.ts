@@ -13,9 +13,13 @@ import { User } from 'src/users/entities/user.entity';
 import { Repository } from 'typeorm';
 import { Role } from 'src/roles/entities/role.entity';
 import { UserRole } from 'src/roles/entities/userRole.entity';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { Mail } from 'src/common/utilities/email.utility';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
+
+import * as dotenv from 'dotenv';
+import { log } from 'console';
+dotenv.config();
 
 @Injectable()
 export class AuthService {
@@ -75,7 +79,9 @@ export class AuthService {
     const userName = user.fullName;
 
     const otp = Math.floor(100000 + Math.random() * 900000);
-    this.mail.sendMail(userName, loginDTO.email, otp);
+    const message = `Hi ${userName}, your OTP for Book My Show is ${otp}`;
+    const subject = `OTP`;
+    this.mail.sendMail(message, subject, loginDTO.email);
     await this.cacheService.set(loginDTO.email, otp);
   }
 
@@ -107,9 +113,11 @@ export class AuthService {
       email: existingUser.email,
       type: 'RefreshToken',
     };
+    console.log(process.env.JWT_ACCESS_EXPIRY);
+    console.log(typeof process.env.JWT_ACCESS_EXPIRY);
     return {
       accessToken: await this.jwtService.signAsync(accessPayload, {
-        expiresIn: '1m',
+        expiresIn: '1d',
       }),
       refreshToken: await this.jwtService.signAsync(refreshPayload, {
         expiresIn: '10d',
@@ -122,7 +130,7 @@ export class AuthService {
       throw new UnauthorizedException('Authorization header missing');
     }
 
-    const token = authHeader;
+    const [type, token] = authHeader.split(' ');
 
     if (!token) {
       throw new UnauthorizedException('Not Authorized');
@@ -142,7 +150,7 @@ export class AuthService {
         type: payload.type,
       },
       {
-        expiresIn: '1m',
+        expiresIn: '30m',
       },
     );
 
