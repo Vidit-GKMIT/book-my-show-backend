@@ -1,3 +1,4 @@
+import { Exclude } from 'class-transformer';
 import { Show } from 'src/shows/entities/show.entity';
 import { User } from 'src/users/entities/user.entity';
 import {
@@ -37,6 +38,7 @@ export class Booking {
   @JoinColumn({ name: 'show_id' })
   showId: Show;
 
+  @Exclude()
   @CreateDateColumn({
     type: 'timestamptz',
     name: 'created_at',
@@ -44,6 +46,7 @@ export class Booking {
   })
   createdAt: Timestamp;
 
+  @Exclude()
   @UpdateDateColumn({
     type: 'timestamptz',
     name: 'updated_at',
@@ -51,6 +54,7 @@ export class Booking {
   })
   updatedAt: Timestamp;
 
+  @Exclude()
   @DeleteDateColumn({
     type: 'timestamptz',
     name: 'deleted_at',
