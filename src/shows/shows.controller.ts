@@ -14,16 +14,18 @@ import {
 import { ShowsService } from './shows.service';
 import { CreateShowDto } from './dto/create-show.dto';
 import { UpdateShowDto } from './dto/update-show.dto';
-import { AuthGuard } from 'src/auth/auth.guard';
+import { AuthGuard } from 'src/auth/guards/auth.guard';
 import type { Request } from 'express';
 import { PaginationDto } from 'src/common/dto/pagination-dto';
 import { CreateBookingDto } from 'src/bookings/dto/create-booking.dto';
+import { Role, Roles } from 'src/auth/decorators/roles.decorator';
+import { RolesGuard } from 'src/auth/guards/role.guard';
 
 @Controller('shows')
 export class ShowsController {
   constructor(private readonly showsService: ShowsService) {}
-
-  @UseGuards(AuthGuard)
+  @Roles(Role.ADMIN, Role.THEATRE_OWNER)
+  @UseGuards(AuthGuard, RolesGuard)
   @Post()
   create(@Body() createShowDto: CreateShowDto, @Req() request: Request) {
     const role = request.headers.role as string;
@@ -38,7 +40,8 @@ export class ShowsController {
     return await this.showsService.findAll(paginationDto);
   }
 
-  @UseGuards(AuthGuard)
+  @Roles(Role.ADMIN, Role.CUSTOMER)
+  @UseGuards(AuthGuard, RolesGuard)
   @Post(':id/books')
   async bookShow(
     @Body() createBookingDto: CreateBookingDto,
@@ -46,10 +49,6 @@ export class ShowsController {
     @Req() request: Request,
   ) {
     const userId = request.headers.id as string;
-    const role = request.headers.role as string;
-    if (role === 'Theatre Owner') {
-      throw new ForbiddenException('Only customers can book tickets of show');
-    }
     return await this.showsService.bookShow(createBookingDto, +id, +userId);
   }
 

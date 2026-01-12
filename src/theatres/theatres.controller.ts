@@ -14,15 +14,18 @@ import {
 import { TheatresService } from './theatres.service';
 import { CreateTheatreDto } from './dto/create-theatre.dto';
 import { UpdateTheatreDto } from './dto/update-theatre.dto';
-import { AuthGuard } from 'src/auth/auth.guard';
+import { AuthGuard } from 'src/auth/guards/auth.guard';
 import type { Request } from 'express';
 import { PaginationDto } from 'src/common/dto/pagination-dto';
+import { Role, Roles } from 'src/auth/decorators/roles.decorator';
+import { RolesGuard } from 'src/auth/guards/role.guard';
 
 @Controller('theatres')
 export class TheatresController {
   constructor(private readonly theatresService: TheatresService) {}
 
-  @UseGuards(AuthGuard)
+  @Roles(Role.ADMIN, Role.THEATRE_OWNER)
+  @UseGuards(AuthGuard, RolesGuard)
   @Post()
   async create(
     @Body() createTheatreDto: CreateTheatreDto,
@@ -30,10 +33,6 @@ export class TheatresController {
   ) {
     const email = request.headers.email as string;
     const role = request.headers.role as string;
-
-    if (role === 'Customer') {
-      throw new ForbiddenException(`Customers can't create theatres`);
-    }
 
     await this.theatresService.create(createTheatreDto, email);
     return {
@@ -50,18 +49,20 @@ export class TheatresController {
     return this.theatresService.findAll(movie, paginationDto);
   }
 
-  @UseGuards(AuthGuard)
+  @Roles(Role.ADMIN, Role.THEATRE_OWNER)
+  @UseGuards(AuthGuard, RolesGuard)
   @Get(':id/screens')
   findAllScreens(
     @Param('id') id: string,
     @Query() paginationDto: PaginationDto,
-    // @Req() request: Request,
+    @Req() request: Request,
   ) {
     // const role = request.headers.role as string;
     // if (role === 'Customer') {
     //   throw new ForbiddenException(`Customers can't get screens of theatres`);
     // }
-    return this.theatresService.findAllScreens(+id, paginationDto);
+    const userId = request.headers.id as string;
+    return this.theatresService.findAllScreens(+id, paginationDto, +userId);
   }
 
   @Get(':id')
