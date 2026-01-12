@@ -10,9 +10,11 @@ import {
   Headers,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { AuthGuard } from './auth.guard';
+import { AuthGuard } from './guards/auth.guard';
 import { loginDTO, registerDTO } from './dto/create-auth.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
+import { Role, Roles } from './decorators/roles.decorator';
+import { RolesGuard } from './guards/role.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -27,7 +29,8 @@ export class AuthController {
     };
   }
 
-  @UseGuards(AuthGuard)
+  @Roles(Role.ADMIN, Role.THEATRE_OWNER, Role.CUSTOMER)
+  @UseGuards(AuthGuard, RolesGuard)
   @Get('refresh')
   async refresh(@Headers('authorization') authHeader: string) {
     const accessToken = await this.authService.refresh(authHeader);

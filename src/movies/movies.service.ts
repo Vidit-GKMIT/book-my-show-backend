@@ -5,23 +5,33 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Movie } from './entities/movie.entity';
 import { Repository } from 'typeorm';
 import { PaginationDto } from 'src/common/dto/pagination-dto';
+import { S3Service } from 'src/common/utilities/media.upload';
 
 @Injectable()
 export class MoviesService {
   constructor(
     @InjectRepository(Movie)
     private readonly movieRepository: Repository<Movie>,
+    private readonly s3Service: S3Service,
   ) {}
-  async create(createMovieDto: CreateMovieDto) {
-    const { name, duration, poster, trailer } = createMovieDto;
-    const movies = this.movieRepository.create({
+  async create(
+    createMovieDto: CreateMovieDto,
+    poster: Express.Multer.File,
+    trailer: Express.Multer.File,
+  ) {
+    const { name, duration } = createMovieDto;
+
+    const posterUrl = await this.s3Service.uploadFile(poster, 'posters');
+    const trailerUrl = await this.s3Service.uploadFile(trailer, 'trailers');
+
+    const movie = this.movieRepository.create({
       name,
       duration,
-      poster,
-      trailer,
+      poster: posterUrl,
+      trailer: trailerUrl,
     });
 
-    await this.movieRepository.save(movies);
+    await this.movieRepository.save(movie);
   }
 
   async findAll(city: string | undefined, pagination: PaginationDto) {

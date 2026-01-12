@@ -12,6 +12,7 @@ import { Theatre } from 'src/theatres/entities/theatre.entity';
 import { City } from 'src/cities/entities/city.entity';
 import { Country } from 'src/countries/entities/country.entity';
 import { Screen } from 'src/screens/entities/screen.entity';
+import { S3Service } from 'src/common/utilities/media.upload';
 
 @Module({
   imports: [
@@ -29,6 +30,6 @@ import { Screen } from 'src/screens/entities/screen.entity';
     ]),
   ],
   controllers: [MoviesController],
-  providers: [MoviesService],
+  providers: [MoviesService, S3Service],
 })
 export class MoviesModule {}
