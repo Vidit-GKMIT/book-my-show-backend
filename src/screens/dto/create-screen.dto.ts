@@ -16,4 +16,9 @@ export class CreateScreenDto {
   @IsNotEmpty()
   @IsPositive()
   seats: number;
+
+  @IsInt()
+  @IsNotEmpty()
+  @IsPositive()
+  theatreId: number;
 }

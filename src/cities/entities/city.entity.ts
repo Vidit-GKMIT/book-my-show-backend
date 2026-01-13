@@ -1,3 +1,4 @@
+import { Exclude } from 'class-transformer';
 import { Country } from 'src/countries/entities/country.entity';
 import { Theatre } from 'src/theatres/entities/theatre.entity';
 import {
@@ -28,6 +29,7 @@ export class City {
   @JoinColumn({ name: 'country_id' })
   countryId: Country;
 
+  @Exclude()
   @CreateDateColumn({
     type: 'timestamptz',
     name: 'created_at',
@@ -35,6 +37,7 @@ export class City {
   })
   createdAt: Timestamp;
 
+  @Exclude()
   @UpdateDateColumn({
     type: 'timestamptz',
     name: 'updated_at',
@@ -42,6 +45,7 @@ export class City {
   })
   updatedAt: Timestamp;
 
+  @Exclude()
   @DeleteDateColumn({
     type: 'timestamptz',
     name: 'deleted_at',
