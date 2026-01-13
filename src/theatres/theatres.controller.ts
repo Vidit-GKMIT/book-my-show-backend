@@ -46,13 +46,18 @@ export class TheatresController {
     @Query() paginationDto: PaginationDto,
     @Query('movie') movie?: string,
   ) {
-    return this.theatresService.findAll(movie, paginationDto);
+    const data = this.theatresService.findAll(movie, paginationDto);
+    return {
+      data,
+      message: 'All movies fecthed succesfully',
+      status: 200,
+    };
   }
 
   @Roles(Role.ADMIN, Role.THEATRE_OWNER)
   @UseGuards(AuthGuard, RolesGuard)
   @Get(':id/screens')
-  findAllScreens(
+  async findAllScreens(
     @Param('id') id: string,
     @Query() paginationDto: PaginationDto,
     @Req() request: Request,
@@ -62,7 +67,18 @@ export class TheatresController {
     //   throw new ForbiddenException(`Customers can't get screens of theatres`);
     // }
     const userId = request.headers.id as string;
-    return this.theatresService.findAllScreens(+id, paginationDto, +userId);
+    const { screens, page, limit, totalPages } =
+      await this.theatresService.findAllScreens(+id, paginationDto, +userId);
+    return {
+      data: screens,
+      pagination: {
+        page: page,
+        limit,
+        totalPages,
+      },
+      message: 'Data fetched successfully',
+      status: 200,
+    };
   }
 
   @Get(':id')

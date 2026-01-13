@@ -63,8 +63,20 @@ export class MoviesController {
     @Query('city') city: string,
     @Query() paginationDto: PaginationDto,
   ) {
-    const x = await this.moviesService.findAll(city, paginationDto);
-    return x;
+    const { data, page, limit, totalPages } = await this.moviesService.findAll(
+      city,
+      paginationDto,
+    );
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        totalPages,
+      },
+      message: 'Data fetched successfully',
+      status: 200,
+    };
   }
 
   @Get(':id')

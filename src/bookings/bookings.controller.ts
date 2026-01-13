@@ -37,7 +37,18 @@ export class BookingsController {
     @Req() request: Request,
   ) {
     const id = request.headers.id as string;
-    return await this.bookingsService.findAll(paginationDto, +id);
+    const { bookings, page, limit, totalPages } =
+      await this.bookingsService.findAll(paginationDto, +id);
+    return {
+      data: bookings,
+      pagination: {
+        page,
+        limit,
+        totalPages,
+      },
+      message: 'All bookings of this user fetched successfully',
+      status: 200,
+    };
   }
 
   @Get(':id')

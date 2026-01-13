@@ -31,16 +31,7 @@ export class BookingsService {
     });
 
     const bookings = users[0].bookings;
-    return {
-      data: bookings,
-      pagination: {
-        page,
-        limit,
-        totalPages: Math.ceil(count / limit),
-      },
-      message: 'All bookings of this user fetched successfully',
-      status: 200,
-    };
+    return { bookings, page, limit, totalPages: Math.ceil(count / limit) };
   }
 
   findOne(id: number) {

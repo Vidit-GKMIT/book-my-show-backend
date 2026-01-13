@@ -157,6 +157,8 @@ export class AuthService {
     return newToken;
   }
 
+  logout() {}
+
   findAll() {
     return `This action returns all auth`;
   }
