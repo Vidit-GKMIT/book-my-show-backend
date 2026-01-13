@@ -1,6 +1,8 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import {
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -14,9 +16,6 @@ export class UsersService {
     @InjectRepository(Theatre)
     private readonly theatreRepository: Repository<Theatre>,
   ) {}
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
-  }
 
   async findAll(pagination: PaginationDto) {
     const { page, limit, order } = pagination;
@@ -32,16 +31,29 @@ export class UsersService {
       },
     });
 
-    return {
-      data,
-      pagination: {
-        page,
-        limit,
-        totalPages: Math.ceil(count / limit),
+    return { data, page, limit, totalPages: Math.ceil(count / limit) };
+  }
+
+  async findMe(id: number) {
+    const user = await this.userRepository.findOne({
+      relations: {
+        userRoles: {
+          role: true,
+        },
       },
-      message: 'Users fetched successfully',
-      status: 200,
+      where: { id },
+    });
+    if (!user) {
+      throw new UnauthorizedException('User not authorized');
+    }
+    const extractedUser = {
+      fullName: user.fullName,
+      email: user.email,
+      phoneNo: user.phoneNo,
+      role: user.userRoles[0]?.role?.name,
     };
+
+    return extractedUser;
   }
 
   async findOne(id: number) {
@@ -51,11 +63,7 @@ export class UsersService {
       },
     });
 
-    return {
-      data: user,
-      message: 'User fetched successfully',
-      status: 200,
-    };
+    return user;
   }
 
   async findUserTheatre(id: number, role: string) {
@@ -68,18 +76,6 @@ export class UsersService {
       },
     });
 
-    return {
-      data: theatre,
-      message: 'All theatres fetched succesfully',
-      status: 200,
-    };
-  }
-
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+    return theatre;
   }
 }

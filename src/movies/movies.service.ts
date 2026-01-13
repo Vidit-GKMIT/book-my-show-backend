@@ -46,13 +46,9 @@ export class MoviesService {
       });
       return {
         data: movies,
-        pagination: {
-          page,
-          limit,
-          totalPages: Math.ceil(total / limit),
-        },
-        message: 'Data fetched succesfully',
-        status: 200,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
       };
     } else {
       const [movies, total] = await this.movieRepository.findAndCount({
@@ -95,13 +91,9 @@ export class MoviesService {
 
       return {
         data: transformedData,
-        pagination: {
-          page,
-          limit,
-          totalPages: Math.ceil(total / limit),
-        },
-        message: 'Data fetched successfully',
-        status: 200,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
       };
     }
   }

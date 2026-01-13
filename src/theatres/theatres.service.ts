@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, UseGuards } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  UseGuards,
+} from '@nestjs/common';
 import { CreateTheatreDto } from './dto/create-theatre.dto';
 import { UpdateTheatreDto } from './dto/update-theatre.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -11,7 +16,7 @@ import { Screen } from 'src/screens/entities/screen.entity';
 import { Show } from 'src/shows/entities/show.entity';
 import { Movie } from 'src/movies/entities/movie.entity';
 import { PaginationDto } from 'src/common/dto/pagination-dto';
-import { AuthGuard } from 'src/auth/auth.guard';
+import { AuthGuard } from 'src/auth/guards/auth.guard';
 
 @Injectable()
 export class TheatresService {
@@ -94,21 +99,31 @@ export class TheatresService {
     });
 
     const uniqueTheatres = Array.from(uniqueTheatresMap.values());
-
-    return {
-      data: uniqueTheatres,
-    };
+    return { uniqueTheatres };
   }
 
   @UseGuards(AuthGuard)
-  async findAllScreens(id: number, paginationDto: PaginationDto) {
+  async findAllScreens(
+    id: number,
+    paginationDto: PaginationDto,
+    userId: number,
+  ) {
     const theatre = await this.theatreRepository.findOne({
+      relations: {
+        user: true,
+      },
       select: { id: true },
       where: { id },
     });
 
     if (!theatre) {
-      throw new NotFoundException(`Theatre for current user doesn't exist`);
+      throw new NotFoundException(`There is no theatre with this id`);
+    }
+
+    if (theatre.user.id != userId) {
+      throw new ForbiddenException(
+        'You are not allowed to access this resource as this theatre is not yours',
+      );
     }
 
     const { limit, page, order } = paginationDto;
@@ -125,16 +140,7 @@ export class TheatresService {
       order: { createdAt: order },
     });
 
-    return {
-      data: screens,
-      pagination: {
-        page: page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-      message: 'Data fetched successfully',
-      status: 200,
-    };
+    return { screens, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   findOne(id: number) {

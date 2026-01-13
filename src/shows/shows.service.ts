@@ -8,7 +8,13 @@ import { CreateShowDto } from './dto/create-show.dto';
 import { UpdateShowDto } from './dto/update-show.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Show } from './entities/show.entity';
-import { Repository } from 'typeorm';
+import {
+  LessThan,
+  LessThanOrEqual,
+  MoreThan,
+  MoreThanOrEqual,
+  Repository,
+} from 'typeorm';
 import { Movie } from 'src/movies/entities/movie.entity';
 import { TheatreAttributes } from 'src/common/utilities/theatreAttributes.utility';
 import { Theatre } from 'src/theatres/entities/theatre.entity';
@@ -17,6 +23,10 @@ import { Screen } from 'src/screens/entities/screen.entity';
 import { PaginationDto } from 'src/common/dto/pagination-dto';
 import { CreateBookingDto } from 'src/bookings/dto/create-booking.dto';
 import { Booking } from 'src/bookings/entities/booking.entity';
+import { Mail } from 'src/common/utilities/email.utility';
+import { In } from 'typeorm/browser';
+import { User } from 'src/users/entities/user.entity';
+import { DateService } from 'src/common/utilities/date.utility';
 
 @Injectable()
 export class ShowsService {
@@ -31,6 +41,9 @@ export class ShowsService {
     private readonly theatreAttribute: TheatreAttributes,
     @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
+    private readonly mail: Mail,
+    @InjectRepository(User) private readonly userRepository: Repository<User>,
+    private readonly dateService: DateService,
   ) {}
 
   async create(createShowDto: CreateShowDto, request: Request) {
@@ -45,74 +58,69 @@ export class ShowsService {
       throw new Error('No movie with this name exists.');
     }
 
-    const bufferTime = 30;
-    const startDateTime = new Date(showDateTime);
-    const now = new Date();
-
-    if (startDateTime.getTime() - now.getTime() < 10 * 24 * 60 * 60 * 1000) {
-      throw new BadRequestException(
-        'Show must be scheduled at least 10 days in advance',
-      );
-    }
-
-    const hour = startDateTime.getHours();
-
-    if (hour >= 0 && hour < 8) {
-      throw new BadRequestException(
-        'Shows cannot be scheduled between 12:00 AM and 8:00 AM',
-      );
-    }
-
-    const endDateTime = new Date(
-      startDateTime.getTime() + (movie.duration + bufferTime) * 60 * 1000,
-    );
-
     const userId = request.headers.id;
-
     if (!userId) {
       throw new UnauthorizedException('User not authenticated');
     }
 
-    const theatre = await this.theatreRepository.findOne({
-      where: {
-        screens: [
-          {
-            id: screenId,
-          },
-        ],
-      },
-      relations: {
-        city: true,
-        user: true,
-        screens: true,
-      },
-    });
+    const bufferTime = 30;
 
-    if (theatre?.user.id !== +userId) {
-      throw new ForbiddenException('User unauthorized');
-    }
-
-    const show = this.showRepository.create({
-      price,
+    this.dateService.isValidShow(showDateTime);
+    const overlapped = await this.dateService.isOverLapping(
       showDateTime,
-      showEndDateTime: endDateTime,
-      availableSeats: theatre.screens[0].seats,
-      movieId: { id: movieId },
-      screenId: { id: screenId },
-    });
+      movie.duration,
+      bufferTime,
+      screenId,
+    );
 
-    await this.showRepository.save(show);
+    const startDateTime = new Date(showDateTime);
+    const endDateTime = new Date(
+      startDateTime.getTime() + (movie.duration + bufferTime) * 60 * 1000,
+    );
 
-    return {
-      message: 'Show created successfully',
-      status: 201,
-    };
+    if (!overlapped) {
+      const theatre = await this.theatreRepository.findOne({
+        where: {
+          screens: [
+            {
+              id: screenId,
+            },
+          ],
+        },
+        relations: {
+          city: true,
+          user: true,
+          screens: true,
+        },
+      });
+
+      if (theatre?.user.id !== +userId) {
+        throw new ForbiddenException('User unauthorized');
+      }
+
+      const show = this.showRepository.create({
+        price,
+        showDateTime,
+        showEndDateTime: endDateTime,
+        availableSeats: theatre.screens[0].seats,
+        movieId: { id: movieId },
+        screenId: { id: screenId },
+      });
+
+      await this.showRepository.save(show);
+    } else {
+      throw new BadRequestException(
+        'Can not create a show as there are shows in this slot',
+      );
+    }
   }
 
   async findAll(paginationDto: PaginationDto) {
     const { page, limit, order } = paginationDto;
     const skip = (page - 1) * limit;
     const sortOrder = order === 1 ? 'ASC' : 'DESC';
+
+    const now = new Date();
 
     const [shows, count] = await this.showRepository.findAndCount({
       relations: {
@@ -122,6 +130,10 @@ export class ShowsService {
             city: true,
           },
         },
+      },
+      where: {
+        showDateTime: MoreThan(now),
+        availableSeats: MoreThan(0),
       },
       skip,
       take: limit,
@@ -145,16 +157,7 @@ export class ShowsService {
       theatreCity: show.screenId.theatreId.city.name,
     }));
 
-    return {
-      data: data,
-      pagination: {
-        page,
-        limit,
-        totalPages: Math.ceil(count / limit),
-      },
-      message: 'All shows fetched successfully',
-      status: 200,
-    };
+    return { data, page, limit, totalPages: Math.ceil(count / limit) };
   }
 
   async bookShow(
@@ -198,11 +201,6 @@ export class ShowsService {
       );
     }
 
-    // console.log(startDateTime.getTime());
-    // console.log(now.getTime());
-    // console.log(startDateTime.getTime() - now.getTime());
-    // console.log(7 * 24 * 60 * 60 * 1000);
-
     const totalPrice = bookingSeats * show.price;
     console.log(totalPrice);
     console.log(typeof totalPrice);
@@ -216,23 +214,24 @@ export class ShowsService {
 
     await this.bookingRepository.save(booking);
 
-    // const updatedShow = this.showRepository.create({
-    //   availableSeats: availableSeats - bookingSeats,
-    //   price: show.price
-    // });
-    // await this.showRepository.save(updatedShow);
-
     await this.showRepository.update(
       { id: show.id },
       { availableSeats: availableSeats - bookingSeats },
     );
 
-    
+    const user = await this.userRepository.findOne({
+      where: {
+        id: userId,
+      },
+    });
 
-    return {
-      message: 'Booking created successfully for this show',
-      status: 201,
-    };
+    if (!user) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+
+    const message = `Hi, ${user?.fullName} your ${bookingSeats} have been successfully booked. Enjoy your show...!!`;
+    const subject = `Tickets Confirmed`;
+    this.mail.sendMail(message, subject, user?.email);
   }
 
   findOne(id: number) {
@@ -283,9 +282,5 @@ export class ShowsService {
     console.log(theatreOwnerId);
 
     await this.showRepository.softDelete(shows.id);
-    return {
-      message: 'Show deleted successfully (soft delete)',
-      status: 200,
-    };
   }
 }

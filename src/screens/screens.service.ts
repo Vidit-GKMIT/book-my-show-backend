@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -23,33 +24,31 @@ export class ScreensService {
     private readonly theatreRepository: Repository<Theatre>,
   ) {}
   async create(createScreenDto: CreateScreenDto, id: number) {
-    const user = await this.userRepository.findOne({
+    const { name, seats, theatreId } = createScreenDto;
+
+    const theatres = await this.theatreRepository.findOne({
       where: {
-        id: id,
+        id: theatreId,
+      },
+      relations: {
+        user: true,
       },
     });
 
-    if (!user) {
-      throw new UnauthorizedException('User not authorised');
+    if (!theatres) {
+      throw new NotFoundException('No theatre with this id exists');
     }
 
-    const theatre = await this.theatreRepository.findOne({
-      where: {
-        user: {
-          id: user.id,
-        },
-      },
-    });
-
-    if (!theatre) {
-      throw new BadRequestException('Please create a theatre first.');
+    if (theatres?.user.id !== id) {
+      throw new ForbiddenException(
+        'Theatre owner not authorised to add sreen to this theatre',
+      );
     }
 
-    const { name, seats } = createScreenDto;
     const screen = this.screenRepository.create({
       name,
       seats,
-      theatreId: theatre,
+      theatreId: theatres,
     });
 
     await this.screenRepository.save(screen);
