@@ -1,4 +1,6 @@
 import {
+  BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -59,11 +61,15 @@ export class TheatresService {
     await this.theatreRepository.save(theatre);
   }
 
-  async findAll(movie: string | undefined, paginationDto: PaginationDto) {
+  async findAllTheatres(
+    movie: string | undefined,
+    paginationDto: PaginationDto,
+  ) {
     const { page, limit, order } = paginationDto;
     const skip = (page - 1) * limit;
     const sortOrder = order === 1 ? 'ASC' : 'DESC';
 
+    // if (!userId)
     const movies = await this.movieRepository.find({
       relations: {
         shows: {
@@ -80,7 +86,9 @@ export class TheatresService {
       order: { createdAt: sortOrder },
     });
 
-    console.log(movies);
+    if (movies.length === 0) {
+      throw new BadRequestException('These is no movie exsits with this name');
+    }
 
     const uniqueTheatresMap = new Map();
 
@@ -99,10 +107,36 @@ export class TheatresService {
     });
 
     const uniqueTheatres = Array.from(uniqueTheatresMap.values());
-    return { uniqueTheatres };
+    return uniqueTheatres;
   }
 
-  @UseGuards(AuthGuard)
+  async findUserTheatres(userId: number, movie: string | undefined) {
+    const theatres = await this.theatreRepository.find({
+      relations: {
+        city: true,
+      },
+      where: {
+        user: { id: userId },
+        screens: {
+          shows: {
+            movieId: { name: movie },
+          },
+        },
+      },
+    });
+
+    const formattedTheatre = theatres.map((theatre) => {
+      return {
+        id: theatre.id,
+        name: theatre.name,
+        address: theatre.address,
+        city: theatre.city.name,
+      };
+    });
+
+    return formattedTheatre;
+  }
+
   async findAllScreens(
     id: number,
     paginationDto: PaginationDto,

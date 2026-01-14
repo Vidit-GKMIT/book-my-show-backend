@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -36,12 +37,27 @@ export class ScreensService {
     });
 
     if (!theatres) {
-      throw new NotFoundException('No theatre with this id exists');
+      throw new NotFoundException(
+        'No theatre with this id exists, please create a theatre first.',
+      );
     }
 
     if (theatres?.user.id !== id) {
       throw new ForbiddenException(
-        'Theatre owner not authorised to add sreen to this theatre',
+        'Theatre owner not authorized to add sreen to this theatre',
+      );
+    }
+
+    const existingScreen = await this.screenRepository.findOne({
+      where: {
+        name,
+        theatreId: { id: theatreId },
+      },
+    });
+
+    if (existingScreen) {
+      throw new ConflictException(
+        'Screen with this name already exisits in this theatre. please create a screen with new name',
       );
     }
 

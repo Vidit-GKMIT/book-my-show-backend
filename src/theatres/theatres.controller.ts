@@ -41,15 +41,32 @@ export class TheatresController {
     };
   }
 
+  @UseGuards(AuthGuard)
   @Get()
-  findAll(
+  async findAll(
     @Query() paginationDto: PaginationDto,
     @Query('movie') movie?: string,
+    @Req() request?: Request,
   ) {
-    const data = this.theatresService.findAll(movie, paginationDto);
+    const role = request?.headers.role;
+
+
+    if (role === 'Theatre Owner') {
+      const userId = request!.headers.id!;
+      const data = await this.theatresService.findUserTheatres(+userId, movie);
+      return {
+        data,
+        message: `All theatres fetched successfully`,
+        status: 200,
+      };
+    }
+    const data = await this.theatresService.findAllTheatres(
+      movie,
+      paginationDto,
+    );
     return {
       data,
-      message: 'All movies fecthed succesfully',
+      message: `All theatres showing ${movie} successfully`,
       status: 200,
     };
   }
