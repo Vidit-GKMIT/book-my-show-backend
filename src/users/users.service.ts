@@ -47,6 +47,7 @@ export class UsersService {
       throw new UnauthorizedException('User not authorized');
     }
     const extractedUser = {
+      id: user.id,
       fullName: user.fullName,
       email: user.email,
       phoneNo: user.phoneNo,
@@ -66,16 +67,28 @@ export class UsersService {
     return user;
   }
 
-  async findUserTheatre(id: number, role: string) {
-    if (role === 'Customer') {
-      throw new ForbiddenException('Not authorised to access this resource');
+  async findUserTheatre(id: number, userId: number, role: string) {
+    if (userId !== id && role === 'Theatre Owner') {
+      throw new ForbiddenException('You can not access these theatre details');
     }
-    const theatre = await this.theatreRepository.find({
+    const theatres = await this.theatreRepository.find({
+      relations: {
+        city: true,
+      },
       where: {
         user: { id },
       },
     });
 
-    return theatre;
+    const formattedTheatre = theatres.map((theatre) => {
+      return {
+        id: theatre.id,
+        name: theatre.name,
+        address: theatre.address,
+        city: theatre.city.name,
+      };
+    });
+
+    return formattedTheatre;
   }
 }
