@@ -89,8 +89,14 @@ export class MoviesController {
     return this.moviesService.update(+id, updateMovieDto);
   }
 
+  @Roles(Role.ADMIN)
+  @UseGuards(AuthGuard, RolesGuard)
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.moviesService.remove(+id);
+  async remove(@Param('id') id: string) {
+    await this.moviesService.remove(+id);
+    return {
+      message: 'Movie removed successfully',
+      status: 204,
+    };
   }
 }
