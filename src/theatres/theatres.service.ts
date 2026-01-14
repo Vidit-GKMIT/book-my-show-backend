@@ -1,4 +1,11 @@
-import { Injectable, NotFoundException, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  UseGuards,
+} from '@nestjs/common';
 import { CreateTheatreDto } from './dto/create-theatre.dto';
 import { UpdateTheatreDto } from './dto/update-theatre.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -11,7 +18,7 @@ import { Screen } from 'src/screens/entities/screen.entity';
 import { Show } from 'src/shows/entities/show.entity';
 import { Movie } from 'src/movies/entities/movie.entity';
 import { PaginationDto } from 'src/common/dto/pagination-dto';
-import { AuthGuard } from 'src/auth/auth.guard';
+import { AuthGuard } from 'src/auth/guards/auth.guard';
 
 @Injectable()
 export class TheatresService {
@@ -54,11 +61,15 @@ export class TheatresService {
     await this.theatreRepository.save(theatre);
   }
 
-  async findAll(movie: string | undefined, paginationDto: PaginationDto) {
+  async findAllTheatres(
+    movie: string | undefined,
+    paginationDto: PaginationDto,
+  ) {
     const { page, limit, order } = paginationDto;
     const skip = (page - 1) * limit;
     const sortOrder = order === 1 ? 'ASC' : 'DESC';
 
+    // if (!userId)
     const movies = await this.movieRepository.find({
       relations: {
         shows: {
@@ -75,7 +86,9 @@ export class TheatresService {
       order: { createdAt: sortOrder },
     });
 
-    console.log(movies);
+    if (movies.length === 0) {
+      throw new BadRequestException('These is no movie exsits with this name');
+    }
 
     const uniqueTheatresMap = new Map();
 
@@ -94,21 +107,57 @@ export class TheatresService {
     });
 
     const uniqueTheatres = Array.from(uniqueTheatresMap.values());
-
-    return {
-      data: uniqueTheatres,
-    };
+    return uniqueTheatres;
   }
 
-  @UseGuards(AuthGuard)
-  async findAllScreens(id: number, paginationDto: PaginationDto) {
+  async findUserTheatres(userId: number, movie: string | undefined) {
+    const theatres = await this.theatreRepository.find({
+      relations: {
+        city: true,
+      },
+      where: {
+        user: { id: userId },
+        screens: {
+          shows: {
+            movieId: { name: movie },
+          },
+        },
+      },
+    });
+
+    const formattedTheatre = theatres.map((theatre) => {
+      return {
+        id: theatre.id,
+        name: theatre.name,
+        address: theatre.address,
+        city: theatre.city.name,
+      };
+    });
+
+    return formattedTheatre;
+  }
+
+  async findAllScreens(
+    id: number,
+    paginationDto: PaginationDto,
+    userId: number,
+  ) {
     const theatre = await this.theatreRepository.findOne({
+      relations: {
+        user: true,
+      },
       select: { id: true },
       where: { id },
     });
 
     if (!theatre) {
-      throw new NotFoundException(`Theatre for current user doesn't exist`);
+      throw new NotFoundException(`There is no theatre with this id`);
+    }
+
+    if (theatre.user.id != userId) {
+      throw new ForbiddenException(
+        'You are not allowed to access this resource as this theatre is not yours',
+      );
     }
 
     const { limit, page, order } = paginationDto;
@@ -125,16 +174,7 @@ export class TheatresService {
       order: { createdAt: order },
     });
 
-    return {
-      data: screens,
-      pagination: {
-        page: page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-      message: 'Data fetched successfully',
-      status: 200,
-    };
+    return { screens, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   findOne(id: number) {

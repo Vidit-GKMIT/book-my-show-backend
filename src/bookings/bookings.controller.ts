@@ -9,7 +9,6 @@ import {
   Req,
   Query,
   UseGuards,
-  ForbiddenException,
 } from '@nestjs/common';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -29,7 +28,7 @@ export class BookingsController {
     return this.bookingsService.create(createBookingDto);
   }
 
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.CUSTOMER)
   @UseGuards(AuthGuard, RolesGuard)
   @Get()
   async findAll(
@@ -37,7 +36,35 @@ export class BookingsController {
     @Req() request: Request,
   ) {
     const id = request.headers.id as string;
-    return await this.bookingsService.findAll(paginationDto, +id);
+    const { bookings, page, limit, totalPages } =
+      await this.bookingsService.findAll(paginationDto, +id);
+    return {
+      data: bookings,
+      pagination: {
+        page,
+        limit,
+        totalPages,
+      },
+      message: 'All bookings of this user fetched successfully',
+      status: 200,
+    };
+  }
+
+  @Roles(Role.ADMIN, Role.CUSTOMER)
+  @UseGuards(AuthGuard, RolesGuard)
+  @Post(':id/cancel-booking')
+  async cancelBooking(@Param('id') id: string, @Req() request: Request) {
+    const userId = request.headers.id as string;
+    console.log(request.headers.id);
+    console.log(typeof request.headers.id);
+    console.log(id);
+    console.log(userId);
+    const { movie, showTime, theatreName, city } =
+      await this.bookingsService.cancelBooking(+id, +userId);
+    return {
+      message: `Booking for ${movie}, at ${theatreName} is cancelled successfully `,
+      // in ${city} at ${showTime}
+    };
   }
 
   @Get(':id')

@@ -1,5 +1,7 @@
 import {
   BadRequestException,
+  ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -23,33 +25,46 @@ export class ScreensService {
     private readonly theatreRepository: Repository<Theatre>,
   ) {}
   async create(createScreenDto: CreateScreenDto, id: number) {
-    const user = await this.userRepository.findOne({
+    const { name, seats, theatreId } = createScreenDto;
+
+    const theatres = await this.theatreRepository.findOne({
       where: {
-        id: id,
+        id: theatreId,
+      },
+      relations: {
+        user: true,
       },
     });
 
-    if (!user) {
-      throw new UnauthorizedException('User not authorised');
+    if (!theatres) {
+      throw new NotFoundException(
+        'No theatre with this id exists, please create a theatre first.',
+      );
     }
 
-    const theatre = await this.theatreRepository.findOne({
+    if (theatres?.user.id !== id) {
+      throw new ForbiddenException(
+        'Theatre owner not authorized to add sreen to this theatre',
+      );
+    }
+
+    const existingScreen = await this.screenRepository.findOne({
       where: {
-        user: {
-          id: user.id,
-        },
+        name,
+        theatreId: { id: theatreId },
       },
     });
 
-    if (!theatre) {
-      throw new BadRequestException('Please create a theatre first.');
+    if (existingScreen) {
+      throw new ConflictException(
+        'Screen with this name already exisits in this theatre. please create a screen with new name',
+      );
     }
 
-    const { name, seats } = createScreenDto;
     const screen = this.screenRepository.create({
       name,
       seats,
-      theatreId: theatre,
+      theatreId: theatres,
     });
 
     await this.screenRepository.save(screen);

@@ -3,22 +3,49 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { config } from '../ormconfig';
-import { RedisModule } from '@nestjs-labs/nestjs-redis';
+import { typeOrmConfig } from '../ormconfig';
+import { MoviesModule } from './movies/movies.module';
+import { UsersModule } from './users/users.module';
+import { RolesModule } from './roles/roles.module';
+import { ShowsModule } from './shows/shows.module';
+import { TheatresModule } from './theatres/theatres.module';
+import { CitiesModule } from './cities/cities.module';
+import { CountriesModule } from './countries/countries.module';
+import { ScreensModule } from './screens/screens.module';
+import { BookingsModule } from './bookings/bookings.module';
+import { AuthModule } from './auth/auth.module';
+import { MailerModule } from '@nestjs-modules/mailer';
+import { CacheModule } from '@nestjs/cache-manager';
+import { redisStore } from 'cache-manager-redis-store';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forRoot(config),
-    // CacheModule.register({
-    //   isGlobal: true,
-    //   store: redisStore,
-    //   host: '127.0.0.1',
-    //   port: 6379,
-    //   ttl: 5 * 60 * 100,
-    // }),
-    RedisModule.forRoot({
-      url: 'redis://localhost:6379',
+    TypeOrmModule.forRoot(typeOrmConfig),
+    CacheModule.register({
+      isGlobal: true,
+      store: redisStore,
+      host: process.env.REDIS_HOST,
+      port: process.env.REDIS_PORT,
+    }),
+    MoviesModule,
+    UsersModule,
+    RolesModule,
+    ShowsModule,
+    TheatresModule,
+    CitiesModule,
+    CountriesModule,
+    ScreensModule,
+    BookingsModule,
+    AuthModule,
+    MailerModule.forRoot({
+      transport: {
+        host: process.env.EMAIL_HOST,
+        auth: {
+          user: process.env.EMAIL,
+          pass: process.env.EMAIL_PASS,
+        },
+      },
     }),
   ],
   controllers: [AppController],

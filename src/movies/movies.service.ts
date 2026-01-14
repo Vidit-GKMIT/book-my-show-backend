@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateMovieDto } from './dto/create-movie.dto';
 import { UpdateMovieDto } from './dto/update-movie.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -6,6 +10,7 @@ import { Movie } from './entities/movie.entity';
 import { Repository } from 'typeorm';
 import { PaginationDto } from 'src/common/dto/pagination-dto';
 import { S3Service } from 'src/common/utilities/media.upload';
+import { NotFound } from '@aws-sdk/client-s3';
 
 @Injectable()
 export class MoviesService {
@@ -20,6 +25,16 @@ export class MoviesService {
     trailer: Express.Multer.File,
   ) {
     const { name, duration } = createMovieDto;
+
+    const existingMovie = await this.movieRepository.find({
+      where: {
+        name,
+      },
+    });
+
+    if (!existingMovie) {
+      throw new ConflictException('Movie with this name already exists');
+    }
 
     const posterUrl = await this.s3Service.uploadFile(poster, 'posters');
     const trailerUrl = await this.s3Service.uploadFile(trailer, 'trailers');
@@ -46,13 +61,9 @@ export class MoviesService {
       });
       return {
         data: movies,
-        pagination: {
-          page,
-          limit,
-          totalPages: Math.ceil(total / limit),
-        },
-        message: 'Data fetched succesfully',
-        status: 200,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
       };
     } else {
       const [movies, total] = await this.movieRepository.findAndCount({
@@ -95,13 +106,9 @@ export class MoviesService {
 
       return {
         data: transformedData,
-        pagination: {
-          page,
-          limit,
-          totalPages: Math.ceil(total / limit),
-        },
-        message: 'Data fetched successfully',
-        status: 200,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
       };
     }
   }
@@ -114,7 +121,15 @@ export class MoviesService {
     return `This action updates a #${id} movie`;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} movie`;
+  async remove(id: number) {
+    const movie = await this.movieRepository.findOne({
+      where: { id },
+    });
+
+    if (!movie) {
+      throw new NotFoundException('No movie with this id found');
+    }
+
+    await this.movieRepository.softDelete(id);
   }
 }

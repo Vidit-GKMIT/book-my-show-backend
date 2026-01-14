@@ -29,15 +29,7 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('Role does not provided');
     }
 
-    console.log(role);
-    console.log(typeof role);
-
-    console.log(requiredRoles);
-
-    for (let i = 0; i < requiredRoles.length; i++) {
-      if (requiredRoles[i] === role) return true;
-    }
-
+    if (requiredRoles.some((reqRoles) => reqRoles === role)) return true;
     return false;
   }
 }

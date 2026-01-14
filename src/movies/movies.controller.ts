@@ -63,8 +63,20 @@ export class MoviesController {
     @Query('city') city: string,
     @Query() paginationDto: PaginationDto,
   ) {
-    const x = await this.moviesService.findAll(city, paginationDto);
-    return x;
+    const { data, page, limit, totalPages } = await this.moviesService.findAll(
+      city,
+      paginationDto,
+    );
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        totalPages,
+      },
+      message: 'Data fetched successfully',
+      status: 200,
+    };
   }
 
   @Get(':id')
@@ -77,8 +89,14 @@ export class MoviesController {
     return this.moviesService.update(+id, updateMovieDto);
   }
 
+  @Roles(Role.ADMIN)
+  @UseGuards(AuthGuard, RolesGuard)
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.moviesService.remove(+id);
+  async remove(@Param('id') id: string) {
+    await this.moviesService.remove(+id);
+    return {
+      message: 'Movie removed successfully',
+      status: 204,
+    };
   }
 }

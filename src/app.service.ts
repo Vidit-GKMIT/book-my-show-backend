@@ -1,25 +1,26 @@
-import { Injectable } from '@nestjs/common';
-import { dataSource } from 'ormconfig';
-import { RedisService } from '@nestjs-labs/nestjs-redis';
+import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Inject, Injectable } from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 
 export interface healthResponse {
   message: string;
-  date: Date;
+  date: string;
   success: boolean;
-  redis: any;
 }
 
 @Injectable()
 export class AppService {
-  constructor(private readonly redisService: RedisService) {}
+  constructor(
+    @InjectDataSource() private readonly dataSource: DataSource,
+    @Inject(CACHE_MANAGER) private cacheService: Cache,
+  ) {}
   async health(): Promise<healthResponse> {
-    const client = await this.redisService.getClient();
-    await client.set('redis', 'Redis is connected...');
     return {
       message: 'Backend is running...',
-      date: await dataSource.query('SELECT CURRENT_TIME'),
+      date: (await this.dataSource.query('SELECT CURRENT_TIME'))[0]
+        .current_time as string,
       success: true,
-      redis: await client.get('redis'),
     };
   }
 }

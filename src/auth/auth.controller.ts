@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   Headers,
+  Req,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthGuard } from './guards/auth.guard';
@@ -15,6 +16,7 @@ import { loginDTO, registerDTO } from './dto/create-auth.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
 import { Role, Roles } from './decorators/roles.decorator';
 import { RolesGuard } from './guards/role.guard';
+import type { Request } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -24,7 +26,7 @@ export class AuthController {
   async register(@Body() registerAuthDto: registerDTO) {
     await this.authService.register(registerAuthDto);
     return {
-      status: 200,
+      status: 201,
       message: 'User registered successfully',
     };
   }
@@ -36,6 +38,7 @@ export class AuthController {
     const accessToken = await this.authService.refresh(authHeader);
     return {
       accessToken,
+      status: 200,
     };
   }
 
@@ -53,9 +56,17 @@ export class AuthController {
     const tokens = await this.authService.verifyOtp(data);
     return {
       message: 'User logged in successfully',
-      status: 200,
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
+    };
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('logout')
+  logout() {
+    return {
+      message: 'User logged out successfully',
+      status: 200,
     };
   }
 

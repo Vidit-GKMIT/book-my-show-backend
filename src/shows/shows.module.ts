@@ -14,6 +14,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Screen } from 'src/screens/entities/screen.entity';
 import { TheatreAttributes } from 'src/common/utilities/theatreAttributes.utility';
 import { TheatreAttribute } from 'src/theatres/entities/theatre_attributes.entity';
+import { Mail } from 'src/common/utilities/email.utility';
+import { DateService } from 'src/common/utilities/date.utility';
 
 @Module({
   imports: [
@@ -32,6 +34,6 @@ import { TheatreAttribute } from 'src/theatres/entities/theatre_attributes.entit
     ]),
   ],
   controllers: [ShowsController],
-  providers: [ShowsService, TheatreAttributes],
+  providers: [ShowsService, TheatreAttributes, Mail, DateService],
 })
 export class ShowsModule {}

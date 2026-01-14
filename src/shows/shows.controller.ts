@@ -8,8 +8,8 @@ import {
   Delete,
   UseGuards,
   Req,
-  Query,
   ForbiddenException,
+  Query,
 } from '@nestjs/common';
 import { ShowsService } from './shows.service';
 import { CreateShowDto } from './dto/create-show.dto';
@@ -27,17 +27,34 @@ export class ShowsController {
   @Roles(Role.ADMIN, Role.THEATRE_OWNER)
   @UseGuards(AuthGuard, RolesGuard)
   @Post()
-  create(@Body() createShowDto: CreateShowDto, @Req() request: Request) {
-    const role = request.headers.role as string;
-    if (role === 'Customer') {
-      throw new ForbiddenException(`Customers can't create shows.`);
-    }
-    return this.showsService.create(createShowDto, request);
+  async create(@Body() createShowDto: CreateShowDto, @Req() request: Request) {
+    const userId = request.headers.id as string;
+    await this.showsService.create(createShowDto, +userId);
+    return {
+      message: 'Show created successfully',
+      status: 201,
+    };
   }
 
   @Get()
-  async findAll(@Query() paginationDto: PaginationDto) {
-    return await this.showsService.findAll(paginationDto);
+  async findAll(
+    @Query() paginationDto: PaginationDto,
+    @Query('city') city?: string,
+  ) {
+    const { data, page, limit, totalPages } = await this.showsService.findAll(
+      paginationDto,
+      city,
+    );
+    return {
+      data: data,
+      pagination: {
+        page,
+        limit,
+        totalPages,
+      },
+      message: 'All shows fetched successfully',
+      status: 200,
+    };
   }
 
   @Roles(Role.ADMIN, Role.CUSTOMER)
@@ -49,7 +66,26 @@ export class ShowsController {
     @Req() request: Request,
   ) {
     const userId = request.headers.id as string;
-    return await this.showsService.bookShow(createBookingDto, +id, +userId);
+    await this.showsService.bookShow(createBookingDto, +id, +userId);
+    return {
+      message: 'Booking created successfully for this show',
+      status: 201,
+    };
+  }
+
+  @Roles(Role.ADMIN, Role.THEATRE_OWNER)
+  @UseGuards(AuthGuard, RolesGuard)
+  @Get(':id/cancelled-tickets')
+  async cancelledTickets(@Param('id') id: string, @Req() request: Request) {
+    const userId = request.headers.id as string;
+    const cancelledData = await this.showsService.cancelledTickets(
+      +id,
+      +userId,
+    );
+    return {
+      data: cancelledData,
+      message: 'Details of deleted tickets (of this show) fetched successfully',
+    };
   }
 
   @Get(':id')
@@ -70,6 +106,10 @@ export class ShowsController {
     if (role === 'Customer') {
       throw new ForbiddenException(`Customers can't delete shows.`);
     }
-    return await this.showsService.remove(+id, +theatreOwnerId);
+    await this.showsService.remove(+id, +theatreOwnerId);
+    return {
+      message: 'Show deleted successfully (soft delete)',
+      status: 204,
+    };
   }
 }
