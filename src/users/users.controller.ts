@@ -52,8 +52,9 @@ export class UsersController {
   @UseGuards(AuthGuard, RolesGuard)
   @Get(':id/theatres')
   async findUserTheatre(@Param('id') id: string, @Req() request: Request) {
+    const userId = request.headers.id as string;
     const role = request.headers.role as string;
-    const theatre = await this.usersService.findUserTheatre(+id, role);
+    const theatre = await this.usersService.findUserTheatre(+id, +userId, role);
     return {
       data: theatre,
       message: 'All theatres of this user fetched succesfully',

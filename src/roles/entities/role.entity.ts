@@ -9,6 +9,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { UserRole } from './userRole.entity';
+import { Exclude } from 'class-transformer';
 
 @Entity('roles')
 export class Role {
@@ -21,6 +22,7 @@ export class Role {
   @OneToMany(() => UserRole, (userRole) => userRole.role)
   userRoles: UserRole[];
 
+  @Exclude()
   @CreateDateColumn({
     type: 'timestamptz',
     name: 'created_at',
@@ -28,6 +30,7 @@ export class Role {
   })
   createdAt: Timestamp;
 
+  @Exclude()
   @UpdateDateColumn({
     type: 'timestamptz',
     name: 'updated_at',
@@ -35,6 +38,7 @@ export class Role {
   })
   updatedAt: Timestamp;
 
+  @Exclude()
   @DeleteDateColumn({
     type: 'timestamptz',
     name: 'deleted_at',
