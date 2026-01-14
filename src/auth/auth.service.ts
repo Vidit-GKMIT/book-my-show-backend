@@ -73,7 +73,9 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new NotFoundException(`User with ${loginDTO.email} doesn't exists`);
+      throw new NotFoundException(
+        `User with email ${loginDTO.email} doesn't exists`,
+      );
     }
 
     const userName = user.fullName;
@@ -92,6 +94,8 @@ export class AuthService {
     if (otp !== redisOtp) {
       throw new UnauthorizedException(`OTP is not correct`);
     }
+
+    this.cacheService.del(data.email);
 
     const existingUser = await this.userRepository.findOne({
       where: [{ email: data.email }],
@@ -113,8 +117,6 @@ export class AuthService {
       email: existingUser.email,
       type: 'RefreshToken',
     };
-    console.log(process.env.JWT_ACCESS_EXPIRY);
-    console.log(typeof process.env.JWT_ACCESS_EXPIRY);
     return {
       accessToken: await this.jwtService.signAsync(accessPayload, {
         expiresIn: '1d',
