@@ -16,7 +16,6 @@ import { BookingsModule } from './bookings/bookings.module';
 import { AuthModule } from './auth/auth.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { CacheModule } from '@nestjs/cache-manager';
-import { redisStore } from 'cache-manager-redis-store';
 
 @Module({
   imports: [
@@ -24,9 +23,7 @@ import { redisStore } from 'cache-manager-redis-store';
     TypeOrmModule.forRoot(typeOrmConfig),
     CacheModule.register({
       isGlobal: true,
-      store: redisStore,
-      host: process.env.REDIS_HOST,
-      port: process.env.REDIS_PORT,
+      ttl: process.env.CACHE_TTL as undefined,
     }),
     MoviesModule,
     UsersModule,
